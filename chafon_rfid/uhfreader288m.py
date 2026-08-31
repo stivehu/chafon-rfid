@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from datetime import datetime
+
 from .base import G2InventoryResponse as BaseG2InventoryResponse, ReaderCommand, ReaderResponseFrame, Tag, TagData
 from .command import G2_TAG_INVENTORY
 
@@ -81,3 +83,58 @@ class G2InventoryResponseFrame(ReaderResponseFrame):
 class G2InventoryResponse(BaseG2InventoryResponse):
 
     frame_class = G2InventoryResponseFrame
+
+
+def decode_rtc_timestamp(four_bytes):
+    value = int.from_bytes(bytes(four_bytes), byteorder='big')
+    second = value & 0x3F
+    value >>= 6
+    minute = value & 0x3F
+    value >>= 6
+    hour = value & 0x1F
+    value >>= 5
+    date = value & 0x1F
+    value >>= 5
+    month = value & 0x0F
+    value >>= 4
+    year = value & 0x3F
+    return datetime(2000 + year, month, date, hour, minute, second)
+
+
+def encode_rtc_datetime(dt):
+    return [dt.year - 2000, dt.month, dt.day, dt.hour, dt.minute, dt.second]
+
+
+def decode_antenna_bitmask(byte):
+    return [ant for ant in range(1, 5) if byte & (1 << (ant - 1))]
+
+
+class ReaderMemoryRecord(object):
+
+    def __init__(self, disc_time, last_time, count, antennas, epc_or_tid):
+        self.disc_time = disc_time
+        self.last_time = last_time
+        self.count = count
+        self.antennas = antennas
+        self.epc_or_tid = epc_or_tid
+
+
+class ReaderMemoryResponseFrame(ReaderResponseFrame):
+
+    record_header_bytes = 11  # DiscTime(4) + LastTime(4) + Count(2) + Ant(1)
+
+    def get_records(self):
+        offset = 0
+        data = self.data
+        while offset + self.record_header_bytes < len(data):
+            disc_time = bytes(data[offset:offset + 4])
+            last_time = bytes(data[offset + 4:offset + 8])
+            count = (data[offset + 8] << 8) | data[offset + 9]
+            antennas = decode_antenna_bitmask(data[offset + 10])
+            offset += self.record_header_bytes
+            tag_length = data[offset]
+            offset += 1
+            epc_or_tid = bytes(data[offset:offset + tag_length])
+            offset += tag_length
+            yield ReaderMemoryRecord(disc_time=disc_time, last_time=last_time, count=count,
+                                      antennas=antennas, epc_or_tid=epc_or_tid)

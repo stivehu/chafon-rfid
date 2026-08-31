@@ -42,11 +42,18 @@ class TcpTransport(BaseTransport):
         self.socket.settimeout(timeout)
         self.reader_addr = reader_addr
         self.reader_port = reader_port
+        self.timeout = timeout
         if auto_connect:
             self.connect()
 
     def connect(self):
         self.socket.connect((self.reader_addr, self.reader_port))
+
+    def reconnect(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        self.socket.settimeout(self.timeout)
+        self.connect()
 
     def read_bytes(self, length):
         result = self.socket.recv(length)
