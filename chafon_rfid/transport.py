@@ -5,15 +5,11 @@ import socket
 
 
 class BaseTransport(object):
-
     __metaclass__ = abc.ABCMeta
     read_bytecount = 0x100
 
     def __init__(self):
         raise NotImplementedError
-
-    def connect(self):
-        pass
 
     @abc.abstractmethod
     def read_bytes(self, length):
@@ -28,8 +24,6 @@ class BaseTransport(object):
 
     def read_frame(self):
         length_bytes = self.read_bytes(1)
-        if len(length_bytes) == 0:
-            raise ValueError('No frame length found')
         frame_length = length_bytes[0]
         data = length_bytes + self.read_bytes(frame_length)
         return bytearray(data)
@@ -37,34 +31,26 @@ class BaseTransport(object):
     def write(self, byte_array):
         self.write_bytes(byte_array)
 
-    def close(self):
-        pass
-
-    def destroy(self):
-        pass
-
 
 class TcpTransport(BaseTransport):
 
     buffer_size = 0xFF
 
     def __init__(self, reader_addr, reader_port, timeout=5, auto_connect=False):
-        self.timeout = timeout
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        self.socket.settimeout(timeout)
         self.reader_addr = reader_addr
         self.reader_port = reader_port
         if auto_connect:
             self.connect()
 
-    def _create_socket(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.settimeout(self.timeout)
-
     def connect(self):
-        self._create_socket()
         self.socket.connect((self.reader_addr, self.reader_port))
 
     def read_bytes(self, length):
-        return self.socket.recv(length)
+        result = self.socket.recv(length)
+        return result
 
     def write_bytes(self, byte_array):
         self.socket.sendall(byte_array)

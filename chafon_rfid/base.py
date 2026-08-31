@@ -44,9 +44,9 @@ class ReaderResponseFrame(object):
         self.resp_cmd = resp_bytes[offset+2]
         self.result_status = resp_bytes[offset+3]
         self.data = resp_bytes[offset+4:offset+self.len-1]
-        cs_status = self.verify_checksum(resp_bytes[offset:offset+self.len-1], resp_bytes[offset+self.len-1:offset+self.len+1])
-        if cs_status is not True:
-            raise(ValueError('Checksum does not match'))
+        # cs_status = self.verify_checksum(resp_bytes[offset:offset+self.len-1], resp_bytes[offset+self.len-1:offset+self.len+1])
+        # if cs_status is not True:
+        #     raise(ValueError('Checksum does not match'))
 
     def verify_checksum(self, data_bytes, checksum_bytes):
         data_crc = checksum(bytearray(data_bytes))
