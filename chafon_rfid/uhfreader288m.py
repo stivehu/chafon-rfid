@@ -105,6 +105,11 @@ def encode_rtc_datetime(dt):
     return [dt.year - 2000, dt.month, dt.day, dt.hour, dt.minute, dt.second]
 
 
+def decode_rtc_datetime(data):
+    year, month, date, hour, minute, second = data
+    return datetime(2000 + year, month, date, hour, minute, second)
+
+
 def decode_antenna_bitmask(byte):
     return [ant for ant in range(1, 5) if byte & (1 << (ant - 1))]
 
