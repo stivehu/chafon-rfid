@@ -56,7 +56,10 @@ class TcpTransport(BaseTransport):
         self.connect()
 
     def read_bytes(self, length):
-        result = self.socket.recv(length)
+        result = b''
+        while len(result) < length:
+            chunk = self.socket.recv(length - len(result))
+            result += chunk
         return result
 
     def write_bytes(self, byte_array):
