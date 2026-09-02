@@ -35,6 +35,7 @@ class BaseTransport(object):
 class TcpTransport(BaseTransport):
 
     buffer_size = 0xFF
+    drain_timeout = 0.2
 
     def __init__(self, reader_addr, reader_port, timeout=5, auto_connect=False):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -48,6 +49,21 @@ class TcpTransport(BaseTransport):
 
     def connect(self):
         self.socket.connect((self.reader_addr, self.reader_port))
+        self._drain_stale_data()
+
+    def _drain_stale_data(self):
+        # A readeren egy korabbi (megszakadt) kapcsolat idejebol egy meg ki
+        # nem olvasott valaszkeret varakozhat, ami az uj kapcsolaton az elso
+        # parancsunk valasza ele keveredne -- csatlakozaskor ezert
+        # kiuritjuk, ami mar a socketben var.
+        self.socket.settimeout(self.drain_timeout)
+        try:
+            while self.socket.recv(self.buffer_size):
+                pass
+        except socket.timeout:
+            pass
+        finally:
+            self.socket.settimeout(self.timeout)
 
     def reconnect(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
