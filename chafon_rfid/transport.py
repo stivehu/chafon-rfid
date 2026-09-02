@@ -75,6 +75,13 @@ class TcpTransport(BaseTransport):
         result = b''
         while len(result) < length:
             chunk = self.socket.recv(length - len(result))
+            if not chunk:
+                # Lezart TCP-kapcsolaton a recv() nem blokkol, hanem azonnal
+                # ures bytes-szal ter vissza -- enelkul az ellenorzes nelkul a
+                # ciklus vegtelenul, 100% CPU-t hasznalva probalna tovabb
+                # olvasni egy soha meg nem erkezo adatra, kivetel es log
+                # nelkul lefagyasztva a folyamatot.
+                raise ConnectionError('A reader lezarta a TCP-kapcsolatot')
             result += chunk
         return result
 
