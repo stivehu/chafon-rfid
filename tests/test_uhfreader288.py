@@ -104,6 +104,21 @@ def test_encode_rtc_datetime_year_2000():
     assert encode_rtc_datetime(datetime(2000, 1, 1, 0, 0, 0)) == [0, 1, 1, 0, 0, 0]
 
 
+def test_encode_rtc_datetime_rounds_up_past_half_second():
+    # a CF_ADJUST_RTC formatum nem ismer tortmasodpercet -- csonkolas helyett
+    # kerekiteni kell, kulonben minden RTC-szinkron szisztematikusan (atlagosan
+    # -0.5s, legrosszabb esetben -1s) az aktualis ido moge allitja a readert.
+    assert encode_rtc_datetime(datetime(2024, 3, 15, 12, 34, 56, 600_000)) == [24, 3, 15, 12, 34, 57]
+
+
+def test_encode_rtc_datetime_rounds_down_below_half_second():
+    assert encode_rtc_datetime(datetime(2024, 3, 15, 12, 34, 56, 400_000)) == [24, 3, 15, 12, 34, 56]
+
+
+def test_encode_rtc_datetime_rounding_cascades_into_next_day_month_year():
+    assert encode_rtc_datetime(datetime(2024, 12, 31, 23, 59, 59, 900_000)) == [25, 1, 1, 0, 0, 0]
+
+
 def test_decode_antenna_bitmask_single_antennas():
     assert decode_antenna_bitmask(0x01) == [1]
     assert decode_antenna_bitmask(0x02) == [2]

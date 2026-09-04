@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from .base import G2InventoryResponse as BaseG2InventoryResponse, ReaderCommand, ReaderResponseFrame, Tag, TagData
 from .command import G2_TAG_INVENTORY
@@ -102,6 +102,11 @@ def decode_rtc_timestamp(four_bytes):
 
 
 def encode_rtc_datetime(dt):
+    # A CF_ADJUST_RTC formatum nem ismer tortmasodpercet, ezert kerekiteni kell
+    # csonkolas helyett -- a timedelta-osszeadas a perc/ora/nap/honap/ev
+    # atfordulast is helyesen kezeli.
+    if dt.microsecond >= 500_000:
+        dt = dt + timedelta(seconds=1)
     return [dt.year - 2000, dt.month, dt.day, dt.hour, dt.minute, dt.second]
 
 
